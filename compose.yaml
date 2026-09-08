@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: serviceops-desk-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: serviceops
+      POSTGRES_USER: serviceops
+      POSTGRES_PASSWORD: serviceops
+    ports:
+      - "5433:5432"
+    volumes:
+      - serviceops_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U serviceops -d serviceops"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  serviceops_postgres_data:
