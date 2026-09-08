@@ -1,160 +1,162 @@
 # ServiceOps Desk
 
-ServiceOps Desk is a portfolio-scale service-operations application for coordinating internal service jobs. It demonstrates polished frontend work, practical role-based workflows, and credible full-stack fundamentals without pretending to be an enterprise platform.
+ServiceOps Desk is a portfolio-scale service-operations application for coordinating internal support jobs. It demonstrates the work expected from a junior frontend or frontend-focused full-stack developer: polished responsive UI, accessible role-aware workflows, trustworthy server authorization, relational data modeling, and automated quality gates.
 
-## Design direction
+> **Live Demo:** Pending deployment. This milestone prepares the repository locally; it does not create hosting, credentials, or a public remote.
 
-**Operational Clarity** is a white-first, professional B2B interface built around clear ownership, status, and SLA priority. It combines structured Cal.com-style working surfaces, Vercel-like restraint, calm Coinbase-inspired data hierarchy, and extremely subtle Stripe-like depth. Opaque, high-contrast reading surfaces remain the default; cobalt marks interaction, semantic colors are reserved for labeled status/SLA states, and glass is limited to the top utility bar and one dashboard highlight. See [the full design direction](docs/design-direction.md).
+## Product overview
 
-## 1. User problem and target users
+Staff often submit operational requests through chat or spreadsheets, making ownership and deadlines difficult to follow. ServiceOps Desk gives each role a focused view of the same persisted workflow:
 
-Service teams often track requests across chat, spreadsheets, and verbal updates. Staff cannot easily see what is happening, technicians lack a clear queue, and managers struggle to spot overdue work.
+- Staff create clear requests and follow only the jobs they submitted.
+- Technicians work their assigned queue, update status, and record internal notes.
+- Managers see the complete operation, assign work, monitor SLA risk, and close resolved jobs.
 
-The MVP serves three users:
+The visual system, **Operational Clarity**, combines restrained typography, information-dense working surfaces, and semantic SLA/status treatments without becoming a generic admin template. See [docs/design-direction.md](docs/design-direction.md).
 
-- **Staff members** who submit service jobs and follow their progress.
-- **Technicians** who work assigned jobs and record status updates.
-- **Managers** who triage and assign jobs, monitor SLA risk, and review team workload.
+## Screenshots
 
-The primary portfolio audience is hiring teams for Junior Frontend Developer and frontend-focused Full-stack Developer roles in Thailand.
+### Role-aware operational dashboard
 
-## 2. MVP scope and non-goals
+![Manager dashboard with SLA attention, summary cards, priority queue, workload, and recent activity](docs/screenshots/dashboard-desktop.png)
 
-### In scope
+### Service job queue
 
-- Seeded demo users and realistic service-job data.
-- A demo role switcher so every workflow can be evaluated without account setup.
-- Create, view, filter, assign, and update service jobs according to role.
-- Priority, status, assignee, due time, and SLA state.
-- An operational dashboard with useful summaries and workload visibility.
-- Responsive, keyboard-accessible UI with clear loading, empty, error, and validation states.
-- PostgreSQL persistence through Prisma, plus automated tests for critical behavior.
+![Desktop service job list with filters and semantic status and SLA labels](docs/screenshots/jobs-desktop.png)
 
-### Explicit non-goals
+### Job workflow detail
 
-- Production authentication, registration, password recovery, or user administration.
-- Email, SMS, payments, file uploads, chat, or third-party integrations.
-- Multi-tenant organizations, granular custom permissions, or configurable workflows.
-- Real-time collaboration, background job processing, audit-grade compliance, or advanced analytics.
-- Native mobile applications or offline support.
+![Desktop service job detail with activity, assignment, and internal note controls](docs/screenshots/job-detail-desktop.png)
 
-## 3. Roles and permissions
+### Responsive mobile queue
+
+![Mobile service job cards with the skip link visibly focused](docs/screenshots/jobs-mobile.png)
+
+## Features by workflow
+
+### Submit and review
+
+- Validated, single-page service job creation for Staff and Managers.
+- Server-derived requester identity, initial `OPEN` status, deterministic SLA due time, and atomic `CREATED` activity.
+- Role-scoped job queue with search, status filtering, responsive cards, semantic badges, and accessible empty/loading/error states.
+
+### Assign and execute
+
+- Manager assignment and reassignment to seeded Technician identities.
+- Explicit Technician actions for `OPEN → IN_PROGRESS → RESOLVED`.
+- Internal notes for assigned Technicians and Managers, with server-resolved authorship.
+- Atomic status/assignment activity records and immutable closed jobs.
+
+### Monitor and close
+
+- Runtime SLA derivation: `BREACHED`, `AT_RISK`, `ON_TRACK`, or `COMPLETE`.
+- Role-aware dashboard summaries, SLA attention strip, actionable queue, and recent activity.
+- Manager-only seeded Technician workload aggregation.
+- Manager actions for `RESOLVED → CLOSED` or `RESOLVED → IN_PROGRESS`.
+
+## Roles and permissions
 
 | Capability | Staff | Technician | Manager |
 | --- | :---: | :---: | :---: |
-| View dashboard and jobs | Own jobs | Assigned jobs | All jobs |
+| View jobs | Submitted only | Assigned only | All |
 | Create a job | Yes | No | Yes |
-| Edit job details | Own draft/open jobs | No | Any open job |
-| Assign or reassign jobs | No | No | Yes |
-| Change operational status | No | Assigned jobs | Any job |
-| Add internal work notes | No | Assigned jobs | Any job |
+| Assign a Technician | No | No | Non-closed jobs |
+| Start or resolve work | No | Assigned jobs | No |
+| Return resolved work to progress | No | No | Yes |
+| Close resolved work | No | No | Yes |
+| Add internal notes | No | Assigned, non-closed jobs | Accessible, non-closed jobs |
 | View team workload | No | No | Yes |
 
-Authorization must be enforced on the server as well as reflected in the UI. The role switcher represents seeded demo identities; it is not presented as secure production authentication.
+The UI hides unavailable controls, while every mutation independently authorizes against the active server-resolved identity.
 
-## 4. Core workflow
+## Architecture
 
-1. A staff member creates a service job with a title, description, category, and priority.
-2. A manager reviews the unassigned queue, confirms priority and SLA due time, then assigns a technician.
-3. The technician moves the job from **Open** to **In Progress**, adds work notes, and marks it **Resolved**.
-4. The manager reviews the result and marks the job **Closed**, or returns it to **In Progress**.
-5. Dashboard metrics and SLA indicators update from the stored job data throughout the workflow.
+Next.js Server Components query PostgreSQL directly for read views. Server Actions own job mutations and call framework-independent business rules before Prisma performs atomic writes. A small route handler changes the seeded demo identity by validating the requested ID and setting a signed, `HttpOnly` cookie.
 
-## 5. Routes
+```mermaid
+flowchart LR
+    B[Browser UI] --> A[Next.js App Router]
+    A --> I[Server identity resolver]
+    I <--> C[Signed HttpOnly cookie]
+    A --> R[Server Components and Actions]
+    R --> V[Validation and authorization rules]
+    V --> P[Prisma data access]
+    P --> D[(PostgreSQL)]
+```
 
-| Route | Purpose |
-| --- | --- |
-| `/dashboard` | Role-aware summary cards, SLA risk, recent jobs, and manager workload view. |
-| `/jobs` | Searchable and filterable job queue with status, priority, SLA, and assignee. |
-| `/jobs/new` | Accessible job-creation form for Staff and Managers. |
-| `/jobs/[id]` | Job details, assignment, status actions, and chronological work notes. |
+Core boundaries:
 
-The root route redirects to `/dashboard`.
+- `src/app`: routes, route handlers, and Server Actions.
+- `src/components`: responsive application shell and workflow UI.
+- `src/lib`: identity resolution, role/SLA rules, dashboard derivation, and Prisma repositories.
+- `prisma`: schema, migration, and deterministic demo seed.
+- `e2e`: isolated Playwright workflow, accessibility checks, database cleanup, and screenshot capture.
 
-## 6. Proposed Prisma data model
+## Technology stack
 
-### Enums
+- Next.js 16 App Router, React 19, and TypeScript
+- Tailwind CSS 4 with project-owned Operational Clarity tokens and compositions
+- PostgreSQL 17 in Docker, Prisma 7, and the PostgreSQL Prisma adapter
+- Vitest and React Testing Library for business rules and UI behavior
+- Playwright with Chromium for critical workflow and browser-quality checks
+- ESLint and the Next.js production build quality gate
+- Vercel-ready application architecture; deployment is intentionally pending
 
-- `Role`: `STAFF`, `TECHNICIAN`, `MANAGER`
-- `JobStatus`: `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED`
-- `Priority`: `LOW`, `MEDIUM`, `HIGH`, `URGENT`
-- `JobCategory`: `HARDWARE`, `SOFTWARE`, `ACCESS`, `FACILITIES`, `OTHER`
-- `ActivityType`: `CREATED`, `ASSIGNED`, `STATUS_CHANGED`, `NOTE_ADDED`
-
-### `User`
-
-- `id`, `name`, `email` (unique), `role`, `avatarUrl?`, `createdAt`, `updatedAt`
-- Relations: submitted jobs, assigned jobs, and authored activities.
-
-### `ServiceJob`
-
-- `id`, human-readable `reference` (unique), `title`, `description`, `category`, `priority`, `status`
-- `requesterId`, `assigneeId?`, `slaDueAt`, `resolvedAt?`, `closedAt?`
-- `createdAt`, `updatedAt`
-- Indexes on status, assignee, requester, and SLA due time.
-
-SLA state (`ON_TRACK`, `AT_RISK`, or `BREACHED`) should be derived from status and `slaDueAt`, not stored as duplicate state.
-
-### `JobActivity`
-
-- `id`, `jobId`, `authorId`, `type`, `note?`, `fromValue?`, `toValue?`, `createdAt`
-- Provides a simple timeline for assignments, status changes, and work notes.
-
-## 7. Milestone plan
-
-### Week 1 — Foundation and UI shell
-
-- Scaffold Next.js, TypeScript, Tailwind CSS, linting, and test tooling.
-- Define Prisma schema, Docker PostgreSQL setup, migrations, and realistic seed data.
-- Build the responsive application shell and demo role switcher.
-- Implement the jobs list and job detail read views with loading, empty, and error states.
-
-### Week 2 — Complete the workflow
-
-- Add validated job creation.
-- Add manager assignment and role-aware actions.
-- Add technician status updates and work notes.
-- Enforce permissions in server-side mutations and cover core rules with unit/integration tests.
-
-### Week 3 — Dashboard, quality, and delivery
-
-- Build dashboard summaries, SLA indicators, filters, and team workload view.
-- Refine responsive behavior, accessibility, visual hierarchy, and interaction feedback.
-- Add Playwright coverage for the core Staff → Manager → Technician flow.
-- Prepare deterministic demo data, deployment configuration, screenshots, and portfolio documentation.
-
-## 8. MVP acceptance criteria
-
-- A reviewer can switch among three seeded roles and immediately understand the permissions of each.
-- Staff can create a valid job and view only jobs they submitted.
-- Managers can view all jobs, assign a technician, change priority, and close or reopen work.
-- Technicians can view assigned jobs, add a note, and move them through allowed statuses.
-- Unauthorized server-side mutations are rejected even if the UI is bypassed.
-- Job list search and filters work for status, priority, assignee, and SLA condition.
-- The dashboard accurately derives open, in-progress, resolved, at-risk, and breached counts from persisted data.
-- The main workflow works at mobile, tablet, and desktop widths with no horizontal overflow.
-- All interactive controls are keyboard operable, focus is visible, forms have associated labels and useful errors, and color is not the only status cue.
-- Seed/reset instructions produce a consistent demo, Vitest covers core business rules and UI states, and Playwright verifies at least the critical cross-role workflow.
-- The app runs locally with Docker PostgreSQL and deploys successfully to Vercel with a hosted PostgreSQL database.
-
-## Milestone status
-
-Milestone 3A adds the role-aware operational dashboard. Its summaries, SLA attention state, scoped queue, activity feed, and manager-only seeded technician workload are derived at request time from persisted PostgreSQL data. The reusable SLA utility treats open and in-progress jobs due within 24 hours as at risk; resolved and closed jobs are complete and excluded from active risk. Production authentication and Playwright remain deferred.
-
-The demo identity foundation is server-managed: the switcher submits one of three fixed seeded user IDs, the server validates that record in PostgreSQL, and the selection is stored in a signed, `HttpOnly` cookie. Server-rendered job queries resolve that identity and apply role scope before returning data. This is intentionally a portfolio demo mechanism, not production authentication.
-
-## Local development
+## Local setup
 
 Prerequisites: Node.js 24, pnpm 12, and Docker Desktop.
 
 ```bash
 cp .env.example .env
 # Replace DEMO_COOKIE_SECRET with a local random value of at least 32 characters.
+
 pnpm install
+pnpm exec playwright install chromium
 docker compose up -d
 pnpm db:migrate --name init
 pnpm db:seed
 pnpm dev
 ```
 
-Open `http://localhost:3000/dashboard`. The seed is idempotent: rerunning it updates the same fixed demo records without deleting unrelated data.
+Open `http://localhost:3000/dashboard`.
+
+The seed contains three fixed demo identities and seven realistic jobs. It is idempotent: rerunning it restores those records without deleting unrelated local data.
+
+### Quality commands
+
+```bash
+pnpm lint
+pnpm exec tsc --noEmit
+pnpm test
+pnpm test:e2e
+pnpm exec prisma migrate deploy
+pnpm db:seed
+pnpm build
+```
+
+Playwright starts its own local Next.js server, reseeds before the suite, uses the public demo-identity API and actual UI controls, and removes only `[E2E]`-prefixed jobs during setup/teardown.
+
+## Test coverage
+
+- **Vitest:** signed identity-cookie resolution and rejection, role switcher behavior, SLA boundaries, dashboard scoping/metrics/workload, job creation validation and spoofing prevention, assignment rules, every allowed/rejected status transition, timestamp behavior, closed-job immutability, and note authorship/validation.
+- **Playwright:** the full Staff → Manager → Technician → Manager workflow, direct Technician denial from job creation, main-route heading and semantic-label checks, form validation associations, mobile overflow, visible keyboard focus, mobile drawer focus trapping/restoration, and curated screenshot generation.
+
+The tests exercise the portfolio-critical behavior; they are not a claim of exhaustive production coverage.
+
+## Demo and security boundary
+
+This repository intentionally does not include production authentication or user management. The role switcher chooses from three seeded users; the server validates that allowlist, signs the identity into an `HttpOnly`, `SameSite=Lax` cookie, and reloads the user from PostgreSQL for queries and mutations.
+
+This is credible authorization plumbing for a reviewable demo, not a substitute for production sessions, account recovery, CSRF strategy, audit requirements, tenant isolation, or secret management. Never deploy with the example cookie secret or local database credentials.
+
+## Deployment prerequisites
+
+No remote or deployment is created by this milestone. A later Vercel deployment requires:
+
+1. A GitHub repository connected to Vercel.
+2. A hosted PostgreSQL database reachable from Vercel.
+3. Production `DATABASE_URL` and a strong, unique `DEMO_COOKIE_SECRET` environment variable.
+4. `prisma migrate deploy` against the hosted database, followed by the deterministic demo seed.
+5. A production smoke test of all three role views and the critical workflow.
+
+Email, SMS, payments, external identity providers, notifications, real-time infrastructure, and third-party product integrations remain explicit non-goals.
