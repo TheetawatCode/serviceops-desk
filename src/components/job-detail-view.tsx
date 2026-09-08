@@ -10,9 +10,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { JobAssignmentForm } from "@/components/job-assignment-form";
 import { SlaBadge, StatusBadge } from "@/components/status-badge";
 import { formatDateTime, humanize } from "@/lib/format";
-import type { JobActivityItem, JobDetail } from "@/lib/job-types";
+import type { JobMutationState } from "@/lib/job-mutations";
+import type { JobActivityItem, JobDetail, PersonSummary } from "@/lib/job-types";
 
 function ActivityIcon({ type }: { type: JobActivityItem["type"] }) {
   if (type === "NOTE_ADDED") return <MessageSquareText size={16} />;
@@ -20,7 +22,25 @@ function ActivityIcon({ type }: { type: JobActivityItem["type"] }) {
   return <CircleDot size={16} />;
 }
 
-export function JobDetailView({ job }: { job: JobDetail }) {
+function formatActivityValue(activity: JobActivityItem, value: string | null) {
+  if (!value) return "Unassigned";
+  return activity.type === "ASSIGNED" ? value : humanize(value);
+}
+
+export function JobDetailView({
+  job,
+  assignmentAction,
+  technicians,
+  showCreatedFeedback,
+}: {
+  job: JobDetail;
+  assignmentAction?: (
+    previousState: JobMutationState,
+    formData: FormData,
+  ) => Promise<JobMutationState>;
+  technicians: PersonSummary[];
+  showCreatedFeedback: boolean;
+}) {
   return (
     <div className="page-stack detail-page">
       <Link href="/jobs" className="back-link">
@@ -37,8 +57,14 @@ export function JobDetailView({ job }: { job: JobDetail }) {
             <SlaBadge dueAt={job.slaDueAt} status={job.status} />
           </div>
         </div>
-        <p className="read-only-label">Read-only milestone</p>
+        <p className="read-only-label">Operations view</p>
       </header>
+
+      {showCreatedFeedback ? (
+        <p className="success-notice" role="status">
+          Service job created and added to the operations queue.
+        </p>
+      ) : null}
 
       <div className="detail-grid">
         <div className="detail-primary">
@@ -70,10 +96,10 @@ export function JobDetailView({ job }: { job: JobDetail }) {
                       </p>
                       {activity.fromValue || activity.toValue ? (
                         <p className="activity-change">
-                          {activity.fromValue ? humanize(activity.fromValue) : "Unassigned"}
+                          {formatActivityValue(activity, activity.fromValue)}
                           <span aria-hidden="true"> → </span>
                           <span className="sr-only"> changed to </span>
-                          {activity.toValue ? humanize(activity.toValue) : "Unassigned"}
+                          {formatActivityValue(activity, activity.toValue)}
                         </p>
                       ) : null}
                       {activity.note ? <p>{activity.note}</p> : null}
@@ -125,6 +151,13 @@ export function JobDetailView({ job }: { job: JobDetail }) {
               <dd>{formatDateTime(job.createdAt)}</dd>
             </div>
           </dl>
+          {assignmentAction ? (
+            <JobAssignmentForm
+              action={assignmentAction}
+              technicians={technicians}
+              currentAssigneeId={job.assignee?.id ?? null}
+            />
+          ) : null}
         </aside>
       </div>
     </div>

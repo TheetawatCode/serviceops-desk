@@ -11,6 +11,7 @@ import {
 } from "@/lib/demo-identity-cookie";
 import {
   getSeededDemoIdentity,
+  seededDemoIdentities,
   type SeededDemoIdentityId,
 } from "@/lib/demo-identities";
 import type { PersonSummary } from "@/lib/job-types";
@@ -52,4 +53,16 @@ export function createSignedDemoIdentityCookie(identityId: string) {
   const identity = getSeededDemoIdentity(identityId);
   if (!identity) throw new Error("Cannot sign an identity outside the seeded allowlist.");
   return signDemoIdentityId(identity.id, getCookieSecret());
+}
+
+export async function getSeededTechnicians(): Promise<PersonSummary[]> {
+  const technicianIds = seededDemoIdentities
+    .filter((identity) => identity.role === "TECHNICIAN")
+    .map((identity) => identity.id);
+
+  return prisma.user.findMany({
+    where: { id: { in: technicianIds }, role: "TECHNICIAN" },
+    select: personSelect,
+    orderBy: { name: "asc" },
+  });
 }

@@ -140,7 +140,7 @@ SLA state (`ON_TRACK`, `AT_RISK`, or `BREACHED`) should be derived from status a
 
 ## Milestone status
 
-Milestone 1 is approved and limited to the foundation, deterministic demo data, application shell, role switcher, and read-only job views. Mutations, dashboard calculations, production authentication, and Playwright remain deferred.
+Milestone 2A adds Staff/Manager job creation and Manager technician assignment to the approved foundation. Status transitions, work notes, dashboard calculations, production authentication, and Playwright remain deferred.
 
 The demo identity foundation is server-managed: the switcher submits one of three fixed seeded user IDs, the server validates that record in PostgreSQL, and the selection is stored in a signed, `HttpOnly` cookie. Server-rendered job queries resolve that identity and apply role scope before returning data. This is intentionally a portfolio demo mechanism, not production authentication.
 

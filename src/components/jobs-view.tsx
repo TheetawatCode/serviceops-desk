@@ -1,6 +1,6 @@
 "use client";
 
-import { Inbox, Search, UserRound } from "lucide-react";
+import { Inbox, Plus, Search, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -94,9 +94,17 @@ export function JobsView({ jobs }: { jobs: JobListItem[] }) {
           <h1>Service jobs</h1>
           <p>{scopeLabel}. Review ownership, progress, and SLA timing.</p>
         </div>
-        <div className="result-count" aria-live="polite">
-          <strong>{visibleJobs.length}</strong>
-          <span>{visibleJobs.length === 1 ? "job" : "jobs"}</span>
+        <div className="page-header-actions">
+          {identity.role !== "TECHNICIAN" ? (
+            <Link href="/jobs/new" className="button-primary">
+              <Plus size={16} aria-hidden="true" />
+              New service job
+            </Link>
+          ) : null}
+          <div className="result-count" aria-live="polite">
+            <strong>{visibleJobs.length}</strong>
+            <span>{visibleJobs.length === 1 ? "job" : "jobs"}</span>
+          </div>
         </div>
       </header>
 

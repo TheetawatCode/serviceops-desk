@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { assignServiceJobAction } from "@/app/jobs/[reference]/actions";
 import { JobDetailView } from "@/components/job-detail-view";
-import { getActiveDemoIdentity } from "@/lib/demo-identity.server";
+import {
+  getActiveDemoIdentity,
+  getSeededTechnicians,
+} from "@/lib/demo-identity.server";
 import { getJobForIdentity } from "@/lib/jobs";
 
 export const dynamic = "force-dynamic";
@@ -20,14 +24,30 @@ export async function generateMetadata({
 
 export default async function JobDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ reference: string }>;
+  searchParams: Promise<{ created?: string }>;
 }) {
   const { reference } = await params;
+  const { created } = await searchParams;
   const identity = await getActiveDemoIdentity();
   const job = await getJobForIdentity(reference, identity);
 
   if (!job) notFound();
 
-  return <JobDetailView job={job} />;
+  const canAssign = identity.role === "MANAGER" && job.status !== "CLOSED";
+  const technicians = canAssign ? await getSeededTechnicians() : [];
+  const assignmentAction = canAssign
+    ? assignServiceJobAction.bind(null, reference)
+    : undefined;
+
+  return (
+    <JobDetailView
+      job={job}
+      assignmentAction={assignmentAction}
+      technicians={technicians}
+      showCreatedFeedback={created === "1"}
+    />
+  );
 }
