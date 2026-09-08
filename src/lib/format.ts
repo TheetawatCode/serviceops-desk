@@ -1,19 +1,5 @@
-import type { JobStatus, Priority } from "@/lib/job-types";
-
-export type SlaState = "ON_TRACK" | "AT_RISK" | "BREACHED" | "COMPLETE";
-
-export function getSlaState(
-  dueAt: string,
-  status: JobStatus,
-  now = new Date(),
-): SlaState {
-  if (status === "RESOLVED" || status === "CLOSED") return "COMPLETE";
-
-  const remaining = new Date(dueAt).getTime() - now.getTime();
-  if (remaining < 0) return "BREACHED";
-  if (remaining <= 4 * 60 * 60 * 1000) return "AT_RISK";
-  return "ON_TRACK";
-}
+import type { Priority } from "@/lib/job-types";
+export { getSlaState, type SlaState } from "@/lib/sla";
 
 export function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("en-GB", {

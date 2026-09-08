@@ -6,11 +6,18 @@ describe("getSlaState", () => {
   const now = new Date("2026-09-08T02:00:00.000Z");
 
   it("marks active jobs according to the remaining SLA window", () => {
-    expect(getSlaState("2026-09-08T08:00:00.000Z", "OPEN", now)).toBe("ON_TRACK");
+    expect(getSlaState("2026-09-09T02:00:01.000Z", "OPEN", now)).toBe("ON_TRACK");
     expect(getSlaState("2026-09-08T05:00:00.000Z", "IN_PROGRESS", now)).toBe(
       "AT_RISK",
     );
     expect(getSlaState("2026-09-08T01:59:00.000Z", "OPEN", now)).toBe("BREACHED");
+  });
+
+  it("uses an inclusive 24-hour at-risk boundary", () => {
+    expect(getSlaState("2026-09-09T02:00:00.000Z", "OPEN", now)).toBe("AT_RISK");
+    expect(getSlaState("2026-09-08T02:00:00.000Z", "IN_PROGRESS", now)).toBe(
+      "AT_RISK",
+    );
   });
 
   it("marks resolved work complete regardless of due time", () => {

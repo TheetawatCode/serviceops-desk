@@ -1,6 +1,6 @@
 "use client";
 
-import { BriefcaseBusiness, Menu, PanelLeftClose, X } from "lucide-react";
+import { BriefcaseBusiness, LayoutDashboard, Menu, PanelLeftClose, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -9,7 +9,7 @@ import { RoleSwitcher } from "@/components/role-switcher";
 
 function Brand() {
   return (
-    <Link href="/jobs" className="brand" aria-label="ServiceOps Desk jobs">
+    <Link href="/dashboard" className="brand" aria-label="ServiceOps Desk dashboard">
       <span className="brand-mark" aria-hidden="true">
         <BriefcaseBusiness size={18} strokeWidth={2.2} />
       </span>
@@ -23,16 +23,26 @@ function Brand() {
 
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const active = pathname.startsWith("/jobs");
+  const dashboardActive = pathname === "/dashboard";
+  const jobsActive = pathname.startsWith("/jobs");
 
   return (
     <nav aria-label="Primary navigation" className="primary-nav">
       <p className="nav-label">Workspace</p>
       <Link
+        href="/dashboard"
+        onClick={onNavigate}
+        className={dashboardActive ? "nav-link nav-link-active" : "nav-link"}
+        aria-current={dashboardActive ? "page" : undefined}
+      >
+        <LayoutDashboard size={17} aria-hidden="true" />
+        Dashboard
+      </Link>
+      <Link
         href="/jobs"
         onClick={onNavigate}
-        className={active ? "nav-link nav-link-active" : "nav-link"}
-        aria-current={active ? "page" : undefined}
+        className={jobsActive ? "nav-link nav-link-active" : "nav-link"}
+        aria-current={jobsActive ? "page" : undefined}
       >
         <PanelLeftClose size={17} aria-hidden="true" />
         Service jobs

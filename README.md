@@ -68,7 +68,6 @@ Authorization must be enforced on the server as well as reflected in the UI. The
 | `/jobs` | Searchable and filterable job queue with status, priority, SLA, and assignee. |
 | `/jobs/new` | Accessible job-creation form for Staff and Managers. |
 | `/jobs/[id]` | Job details, assignment, status actions, and chronological work notes. |
-| `/team` | Manager-only technician workload and active-job summary. |
 
 The root route redirects to `/dashboard`.
 
@@ -140,7 +139,7 @@ SLA state (`ON_TRACK`, `AT_RISK`, or `BREACHED`) should be derived from status a
 
 ## Milestone status
 
-Milestone 2B adds the constrained Technician/Manager status workflow and internal work notes to the approved creation and assignment foundation. Dashboard calculations, production authentication, and Playwright remain deferred.
+Milestone 3A adds the role-aware operational dashboard. Its summaries, SLA attention state, scoped queue, activity feed, and manager-only seeded technician workload are derived at request time from persisted PostgreSQL data. The reusable SLA utility treats open and in-progress jobs due within 24 hours as at risk; resolved and closed jobs are complete and excluded from active risk. Production authentication and Playwright remain deferred.
 
 The demo identity foundation is server-managed: the switcher submits one of three fixed seeded user IDs, the server validates that record in PostgreSQL, and the selection is stored in a signed, `HttpOnly` cookie. Server-rendered job queries resolve that identity and apply role scope before returning data. This is intentionally a portfolio demo mechanism, not production authentication.
 
@@ -158,4 +157,4 @@ pnpm db:seed
 pnpm dev
 ```
 
-Open `http://localhost:3000/jobs`. The seed is idempotent: rerunning it updates the same fixed demo records without deleting unrelated data.
+Open `http://localhost:3000/dashboard`. The seed is idempotent: rerunning it updates the same fixed demo records without deleting unrelated data.
