@@ -955,6 +955,18 @@ tbody tr:focus-within {
   color: var(--ink-muted);
 }
 
+.activity-icon-note_added {
+  border-color: #cdddfb;
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.activity-icon-status_changed {
+  border-color: #c7ead8;
+  background: var(--success-soft);
+  color: var(--success);
+}
+
 .activity-list p {
   margin: 0;
   color: var(--ink-muted);
@@ -1118,16 +1130,23 @@ tbody tr:focus-within {
   padding-top: 20px;
 }
 
+.status-action-card,
 .assignment-card {
   display: grid;
   gap: 16px;
-  margin: 20px -20px -20px;
+  margin: 20px -20px 0;
   border-top: 1px solid var(--border);
   background: var(--surface-subtle);
   padding: 20px;
 }
 
-.assignment-card h2 {
+.details-panel > .assignment-card:last-child {
+  margin-bottom: -20px;
+}
+
+.assignment-card h2,
+.status-action-card h2,
+.internal-note-card h2 {
   margin: 0;
 }
 
@@ -1138,6 +1157,91 @@ tbody tr:focus-within {
 .assignment-form {
   display: grid;
   gap: 9px;
+}
+
+.status-action-form {
+  display: grid;
+  gap: 11px;
+}
+
+.status-action-form > p:first-child {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+
+.status-action-buttons {
+  display: grid;
+  gap: 8px;
+}
+
+.status-action-buttons button {
+  width: 100%;
+}
+
+.internal-note-card {
+  display: grid;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.internal-note-card > div > p:last-child,
+.internal-note-form > p {
+  margin: 7px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+
+.internal-note-form {
+  display: grid;
+  gap: 9px;
+}
+
+.internal-note-form label {
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.internal-note-form textarea {
+  width: 100%;
+  min-height: 112px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  outline: 0;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 10px 11px;
+  resize: vertical;
+}
+
+.internal-note-form textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.12);
+}
+
+.internal-note-form textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.internal-note-form .button-secondary {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 4px;
+}
+
+.note-success {
+  margin: 0;
+  border-left: 3px solid var(--success);
+  background: var(--success-soft);
+  color: var(--success);
+  padding: 9px 11px;
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 
 .assignment-form .button-secondary {
@@ -1243,8 +1347,17 @@ tbody tr:focus-within {
     padding: 28px;
   }
 
+  .status-action-card,
   .assignment-card {
-    margin: 24px -24px -24px;
+    margin: 24px -24px 0;
+    padding: 24px;
+  }
+
+  .details-panel > .assignment-card:last-child {
+    margin-bottom: -24px;
+  }
+
+  .internal-note-card {
     padding: 24px;
   }
 }

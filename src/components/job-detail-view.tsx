@@ -11,9 +11,11 @@ import {
 import Link from "next/link";
 
 import { JobAssignmentForm } from "@/components/job-assignment-form";
+import { JobStatusActions } from "@/components/job-status-actions";
+import { InternalNoteForm } from "@/components/internal-note-form";
 import { SlaBadge, StatusBadge } from "@/components/status-badge";
 import { formatDateTime, humanize } from "@/lib/format";
-import type { JobMutationState } from "@/lib/job-mutations";
+import type { JobMutationState, StatusAction } from "@/lib/job-mutations";
 import type { JobActivityItem, JobDetail, PersonSummary } from "@/lib/job-types";
 
 function ActivityIcon({ type }: { type: JobActivityItem["type"] }) {
@@ -27,14 +29,33 @@ function formatActivityValue(activity: JobActivityItem, value: string | null) {
   return activity.type === "ASSIGNED" ? value : humanize(value);
 }
 
+function activityDescription(activity: JobActivityItem) {
+  if (activity.type === "NOTE_ADDED") return "added an internal note";
+  if (activity.type === "STATUS_CHANGED") return "changed the status";
+  if (activity.type === "ASSIGNED") return "updated assignment";
+  return "created this job";
+}
+
 export function JobDetailView({
   job,
   assignmentAction,
+  statusActions,
+  statusAction,
+  internalNoteAction,
   technicians,
   showCreatedFeedback,
 }: {
   job: JobDetail;
   assignmentAction?: (
+    previousState: JobMutationState,
+    formData: FormData,
+  ) => Promise<JobMutationState>;
+  statusActions: StatusAction[];
+  statusAction?: (
+    previousState: JobMutationState,
+    formData: FormData,
+  ) => Promise<JobMutationState>;
+  internalNoteAction?: (
     previousState: JobMutationState,
     formData: FormData,
   ) => Promise<JobMutationState>;
@@ -86,13 +107,13 @@ export function JobDetailView({
               <ol className="activity-list">
                 {job.activities.map((activity) => (
                   <li key={activity.id}>
-                    <span className="activity-icon" aria-hidden="true">
+                    <span className={`activity-icon activity-icon-${activity.type.toLowerCase()}`} aria-hidden="true">
                       <ActivityIcon type={activity.type} />
                     </span>
                     <div>
                       <p>
                         <strong>{activity.author.name}</strong>{" "}
-                        {humanize(activity.type).toLowerCase()}
+                        {activityDescription(activity)}
                       </p>
                       {activity.fromValue || activity.toValue ? (
                         <p className="activity-change">
@@ -114,6 +135,7 @@ export function JobDetailView({
               <p className="quiet-copy">No activity has been recorded.</p>
             )}
           </section>
+          {internalNoteAction ? <InternalNoteForm action={internalNoteAction} /> : null}
         </div>
 
         <aside className="content-card details-panel" aria-labelledby="job-info-heading">
@@ -151,6 +173,9 @@ export function JobDetailView({
               <dd>{formatDateTime(job.createdAt)}</dd>
             </div>
           </dl>
+          {statusAction && statusActions.length ? (
+            <JobStatusActions actions={statusActions} action={statusAction} />
+          ) : null}
           {assignmentAction ? (
             <JobAssignmentForm
               action={assignmentAction}

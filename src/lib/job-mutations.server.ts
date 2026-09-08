@@ -4,8 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { seededDemoIdentities } from "@/lib/demo-identities";
 import type {
   AssignmentRepository,
+  InternalNoteRepository,
   JobCreationPayload,
   JobCreationRepository,
+  StatusTransitionRepository,
 } from "@/lib/job-mutations";
 
 export const jobCreationRepository: JobCreationRepository = {
@@ -78,6 +80,60 @@ export const assignmentRepository: AssignmentRepository = {
           createdAt: input.createdAt,
         },
       });
+    });
+  },
+};
+
+const workflowJobSelect = {
+  id: true,
+  status: true,
+  assigneeId: true,
+  resolvedAt: true,
+} as const;
+
+export const statusTransitionRepository: StatusTransitionRepository = {
+  async findJob(reference) {
+    return prisma.serviceJob.findUnique({ where: { reference }, select: workflowJobSelect });
+  },
+  async updateStatusWithActivity(input) {
+    await prisma.$transaction(async (transaction) => {
+      await transaction.serviceJob.update({
+        where: { id: input.jobId },
+        data: {
+          status: input.status,
+          resolvedAt: input.resolvedAt,
+          closedAt: input.closedAt,
+        },
+      });
+      await transaction.jobActivity.create({
+        data: {
+          id: input.activityId,
+          jobId: input.jobId,
+          authorId: input.authorId,
+          type: "STATUS_CHANGED",
+          fromValue: input.fromValue,
+          toValue: input.toValue,
+          createdAt: input.createdAt,
+        },
+      });
+    });
+  },
+};
+
+export const internalNoteRepository: InternalNoteRepository = {
+  async findJob(reference) {
+    return prisma.serviceJob.findUnique({ where: { reference }, select: workflowJobSelect });
+  },
+  async addInternalNote(input) {
+    await prisma.jobActivity.create({
+      data: {
+        id: input.activityId,
+        jobId: input.jobId,
+        authorId: input.authorId,
+        type: "NOTE_ADDED",
+        note: input.note,
+        createdAt: input.createdAt,
+      },
     });
   },
 };

@@ -1,4 +1,4 @@
-import type { PersonSummary, Priority } from "@/lib/job-types";
+import type { JobStatus, PersonSummary, Priority } from "@/lib/job-types";
 
 export type JobCreationFields = {
   title: string;
@@ -7,7 +7,9 @@ export type JobCreationFields = {
   priority: string;
 };
 
-export type JobFormErrors = Partial<Record<keyof JobCreationFields | "assigneeId", string>>;
+export type JobFormErrors = Partial<
+  Record<keyof JobCreationFields | "assigneeId" | "status" | "note", string>
+>;
 
 export type JobMutationState = {
   message: string | null;
@@ -159,6 +161,44 @@ export type AssignmentJob = {
   assignee: Pick<PersonSummary, "id" | "name"> | null;
 };
 
+export type WorkflowJob = {
+  id: string;
+  status: JobStatus;
+  assigneeId: string | null;
+  resolvedAt?: Date | null;
+};
+
+export type StatusAction = {
+  target: JobStatus;
+  label: string;
+};
+
+export function getAvailableStatusActions(
+  job: WorkflowJob,
+  actor: PersonSummary,
+): StatusAction[] {
+  if (job.status === "CLOSED") return [];
+
+  if (actor.role === "TECHNICIAN" && job.assigneeId === actor.id) {
+    if (job.status === "OPEN") return [{ target: "IN_PROGRESS", label: "Start work" }];
+    if (job.status === "IN_PROGRESS") return [{ target: "RESOLVED", label: "Mark resolved" }];
+  }
+
+  if (actor.role === "MANAGER" && job.status === "RESOLVED") {
+    return [
+      { target: "CLOSED", label: "Close job" },
+      { target: "IN_PROGRESS", label: "Return to in progress" },
+    ];
+  }
+
+  return [];
+}
+
+export function canAddInternalNote(job: WorkflowJob, actor: PersonSummary) {
+  if (job.status === "CLOSED" || actor.role === "STAFF") return false;
+  return actor.role === "MANAGER" || job.assigneeId === actor.id;
+}
+
 export type AssignmentRepository = {
   findJob: (reference: string) => Promise<AssignmentJob | null>;
   findTechnician: (id: string) => Promise<AssignableTechnician | null>;
@@ -224,4 +264,119 @@ export async function assignServiceJob(
     errors: {},
     changed: true,
   };
+}
+
+export type StatusTransitionRepository = {
+  findJob: (reference: string) => Promise<WorkflowJob | null>;
+  updateStatusWithActivity: (input: {
+    jobId: string;
+    status: JobStatus;
+    resolvedAt: Date | null;
+    closedAt: Date | null;
+    fromValue: JobStatus;
+    toValue: JobStatus;
+    authorId: string;
+    activityId: string;
+    createdAt: Date;
+  }) => Promise<void>;
+};
+
+export async function transitionServiceJobStatus(
+  reference: string,
+  formData: FormData,
+  actor: PersonSummary,
+  repository: StatusTransitionRepository,
+  options: { now?: Date; createId?: IdFactory } = {},
+): Promise<JobMutationState> {
+  const target = formData.get("status");
+  if (typeof target !== "string") {
+    return { message: "Choose a valid status action.", errors: { status: "Invalid status action." } };
+  }
+
+  const job = await repository.findJob(reference);
+  if (!job) return { message: "This service job is no longer available.", errors: {} };
+  if (job.status === "CLOSED") {
+    return { message: "Closed service jobs cannot be changed.", errors: {} };
+  }
+
+  const action = getAvailableStatusActions(job, actor).find((item) => item.target === target);
+  if (!action) {
+    return { message: "That status change is not allowed for this job.", errors: { status: "Invalid status action." } };
+  }
+
+  const now = options.now ?? new Date();
+  const createId = options.createId ?? crypto.randomUUID;
+  const nextStatus = action.target;
+  await repository.updateStatusWithActivity({
+    jobId: job.id,
+    status: nextStatus,
+    resolvedAt:
+      nextStatus === "RESOLVED"
+        ? now
+        : nextStatus === "IN_PROGRESS"
+          ? null
+          : job.resolvedAt ?? null,
+    closedAt: nextStatus === "CLOSED" ? now : null,
+    fromValue: job.status,
+    toValue: nextStatus,
+    authorId: actor.id,
+    activityId: createId(),
+    createdAt: now,
+  });
+
+  return { message: `Job status updated to ${nextStatus.toLowerCase().replace("_", " ")}.`, errors: {}, changed: true };
+}
+
+export const INTERNAL_NOTE_MAX_LENGTH = 1_000;
+
+export function validateInternalNote(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") return { error: "Enter an internal note." };
+  const note = value.trim();
+  if (note.length < 3) return { error: "Write at least 3 characters for an internal note." };
+  if (note.length > INTERNAL_NOTE_MAX_LENGTH) {
+    return { error: `Keep the note to ${INTERNAL_NOTE_MAX_LENGTH.toLocaleString()} characters or fewer.` };
+  }
+  return { note };
+}
+
+export type InternalNoteRepository = {
+  findJob: (reference: string) => Promise<WorkflowJob | null>;
+  addInternalNote: (input: {
+    jobId: string;
+    authorId: string;
+    note: string;
+    activityId: string;
+    createdAt: Date;
+  }) => Promise<void>;
+};
+
+export async function addInternalWorkNote(
+  reference: string,
+  formData: FormData,
+  actor: PersonSummary,
+  repository: InternalNoteRepository,
+  options: { now?: Date; createId?: IdFactory } = {},
+): Promise<JobMutationState> {
+  const validation = validateInternalNote(formData.get("note"));
+  if ("error" in validation) {
+    return { message: "Review the internal note and try again.", errors: { note: validation.error } };
+  }
+
+  const job = await repository.findJob(reference);
+  if (!job) return { message: "This service job is no longer available.", errors: {} };
+  if (!canAddInternalNote(job, actor)) {
+    return { message: "You do not have permission to add a note to this job.", errors: {} };
+  }
+
+  const now = options.now ?? new Date();
+  const createId = options.createId ?? crypto.randomUUID;
+  await repository.addInternalNote({
+    jobId: job.id,
+    authorId: actor.id,
+    note: validation.note,
+    activityId: createId(),
+    createdAt: now,
+  });
+
+  return { message: "Internal note added.", errors: {}, changed: true };
 }
