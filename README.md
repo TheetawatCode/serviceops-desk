@@ -100,7 +100,7 @@ Core boundaries:
 - Vitest and React Testing Library for business rules and UI behavior
 - Playwright with Chromium for critical workflow and browser-quality checks
 - ESLint and the Next.js production build quality gate
-- Vercel-ready application architecture; deployment is intentionally pending
+- Deployed on Vercel with Neon PostgreSQL for the portfolio demo
 
 ## Local setup
 
@@ -149,14 +149,14 @@ This repository intentionally does not include production authentication or user
 
 This is credible authorization plumbing for a reviewable demo, not a substitute for production sessions, account recovery, CSRF strategy, audit requirements, tenant isolation, or secret management. Never deploy with the example cookie secret or local database credentials.
 
-## Deployment prerequisites
+## Production deployment
 
-No remote or deployment is created by this milestone. A later Vercel deployment requires:
+ServiceOps Desk is deployed on [Vercel](https://serviceops-desk.vercel.app) with Neon PostgreSQL.
 
-1. A GitHub repository connected to Vercel.
-2. A hosted PostgreSQL database reachable from Vercel.
-3. Production `DATABASE_URL` and a strong, unique `DEMO_COOKIE_SECRET` environment variable.
-4. `prisma migrate deploy` against the hosted database, followed by the deterministic demo seed.
-5. A production smoke test of all three role views and the critical workflow.
+- Production migrations and the deterministic demo seed are applied.
+- Vercel stores the production `DATABASE_URL` and a strong, unique `DEMO_COOKIE_SECRET` as environment variables.
+- The production smoke test covers all three role views and the critical Staff → Manager → Technician → Manager workflow.
+
+The deployed demo intentionally uses seeded identities and realistic service-job data. Never deploy with the example cookie secret or local database credentials.
 
 Email, SMS, payments, external identity providers, notifications, real-time infrastructure, and third-party product integrations remain explicit non-goals.
