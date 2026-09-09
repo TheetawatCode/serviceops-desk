@@ -2,7 +2,7 @@
 
 ServiceOps Desk is a portfolio-scale service-operations application for coordinating internal support jobs. It demonstrates the work expected from a junior frontend or frontend-focused full-stack developer: polished responsive UI, accessible role-aware workflows, trustworthy server authorization, relational data modeling, and automated quality gates.
 
-> **Live Demo:** Pending deployment. This milestone prepares the repository locally; it does not create hosting, credentials, or a public remote.
+> **Live Demo:** [Open ServiceOps Desk](https://serviceops-desk.vercel.app). The production demo uses seeded identities and realistic seeded service-job data.
 
 ## Product overview
 
