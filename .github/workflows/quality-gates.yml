@@ -59,6 +59,9 @@ jobs:
       - name: Apply database migrations
         run: pnpm exec prisma migrate deploy
 
+      - name: Seed demo data for browser startup
+        run: pnpm db:seed
+
       - name: Lint
         run: pnpm lint
 
