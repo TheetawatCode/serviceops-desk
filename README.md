@@ -1,5 +1,7 @@
 # ServiceOps Desk
 
+[![Quality gates](https://github.com/TheetawatCode/serviceops-desk/actions/workflows/quality-gates.yml/badge.svg)](https://github.com/TheetawatCode/serviceops-desk/actions/workflows/quality-gates.yml)
+
 ServiceOps Desk is a portfolio-scale service-operations application for coordinating internal support jobs. It demonstrates the work expected from a junior frontend or frontend-focused full-stack developer: polished responsive UI, accessible role-aware workflows, trustworthy server authorization, relational data modeling, and automated quality gates.
 
 > **Live Demo:** [Open ServiceOps Desk](https://serviceops-desk.vercel.app). The production demo uses seeded identities and realistic seeded service-job data.

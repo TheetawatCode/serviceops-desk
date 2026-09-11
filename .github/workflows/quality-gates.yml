@@ -1,0 +1,77 @@
+name: Quality gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-gates-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: serviceops
+          POSTGRES_USER: serviceops
+          POSTGRES_PASSWORD: serviceops
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U serviceops -d serviceops"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://serviceops:serviceops@localhost:5432/serviceops?schema=public
+      DEMO_COOKIE_SECRET: serviceops-ci-demo-cookie-secret-for-quality-gates-only
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Apply database migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Run unit and component tests
+        run: pnpm test
+
+      - name: Create production build
+        run: pnpm build
+
+      - name: Run end-to-end tests
+        run: pnpm test:e2e
+        env:
+          CI: true
